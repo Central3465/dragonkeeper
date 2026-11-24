@@ -63,6 +63,33 @@ export default class GameScene extends Phaser.Scene {
 
         this.physics.add.collider(this.player, this.obstacles)
 
+        this.inventory = { seeds:  5, dragonFruit: 0}
+
+        this.inventoryText = this.add.text(20, 55, '', { fontSize: '16px', color: '#ffffff', backgroundColor: '#222222', padding: 10}).setScrollFactor(0).setDepth(2000)
+
+        this.refreshInventory()
+
+        this.farmPlots = []
+
+        for (let i = 0; i < 6; i++) {
+            const x = 1320 + (i % 3) * 65
+            const y = 1000 + Math.floor(i / 3) * 65
+
+            const plot = this.add.rectangle(x,y,48,38,0x795333)
+
+            plot.setStrokeStyle(2, 0x51351f)
+            plot.setDepth(y)
+
+            plot.setData('type', 'farmPlot')
+            plot.setData('state', 'empty')
+
+            this.farmPlots.push(plot)
+        }
+
+        this.farmPlots.forEach(plot => {
+            this.renderPlot(plot)
+        })
+
         const directions = [
             { name: "down", start: 0},
             { name: "left", start: 3},
@@ -233,6 +260,27 @@ export default class GameScene extends Phaser.Scene {
         } else {
             this.prompt.setVisible(false)
         }
-
     }
-}
+
+    refreshInventory() {
+        this.inventoryText.setText(`Seeds: ${this.inventory.seeds}  ` + `Dragon Fruit: ${this.inventory.dragonFruit}`)
+    }
+
+    renderPlot(plot) {
+        const oldVisuals = plot.getData('visuals') || []
+
+        oldVisuals.forEach(object => object.destroy())
+
+        const visuals = []
+        const state = plot.getData('state')
+
+        if (state !== 'empty') {
+            const plant = this.add.graphics()
+
+            plant.setDepth(plot.y + 1)
+
+            plant.fillStyle(0x397a43)
+            plant.fillRect(plot.x, plot.y - 10, 7)
+        }
+    }
+}      
