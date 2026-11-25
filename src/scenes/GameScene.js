@@ -94,6 +94,8 @@ export default class GameScene extends Phaser.Scene {
             this.renderPlot(plot)
         })
 
+        const cum = this.cameras.main
+
         this.shopStall = this.add.rectangle(1250,820,70,55,0x9a6537)
 
         this.shopStall.setStrokeStyle(3, 0x51351f)
@@ -105,7 +107,8 @@ export default class GameScene extends Phaser.Scene {
         this.shopOpen = false
         this.shopStatus = "Welcome to my shop!"
 
-        this.shopPanel = this.add.rectangle(480,270,540,330,0x18251c,0.97).setStrokeStyle(4,0xc9a65a)
+        this.shopPanel = this.add.rectangle(cum.width / 2, cum.height / 2, 540, 330, 0x18251c, 0.97)
+        this.shopPanel.setStrokeStyle(4, 0xc9a65a)
 
         this.shopPanel.setScrollFactor(0).setDepth(4000)
 
