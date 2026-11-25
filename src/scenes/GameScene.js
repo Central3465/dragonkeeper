@@ -63,7 +63,11 @@ export default class GameScene extends Phaser.Scene {
 
         this.physics.add.collider(this.player, this.obstacles)
 
-        this.inventory = { seeds:  5, dragonFruit: 0}
+        this.inventory = {
+            seeds: 5,
+            dragonFruit: 0,
+            coins: 0
+        } // multiline; will probably scale further in the future
 
         this.inventoryText = this.add.text(20, 55, '', { fontSize: '16px', color: '#ffffff', backgroundColor: '#222222', padding: 10}).setScrollFactor(0).setDepth(2000)
 
@@ -88,6 +92,42 @@ export default class GameScene extends Phaser.Scene {
 
         this.farmPlots.forEach(plot => {
             this.renderPlot(plot)
+        })
+
+        this.shopStall = this.add.rectangle(1250,820,70,55,0x9a6537)
+
+        this.shopStall.setStrokeStyle(3, 0x51351f)
+        this.shopStall.setDepth(820)
+        this.shopStall.setData('type', 'merchant') // yay shop where you buy stuff
+
+        this.add.text(1250,778,'Merchant',{ fontSize: '15px', color: '#ffffff', fontStyle: "bold", backgroundColor: "#222222", padding: 5}).setOrigin(0.5).setDepth(821)
+
+        this.shopOpen = false
+        this.shopStatus = "Welcome to my shop!"
+
+        this.shopPanel.setScrollFactor(0).setDepth(4000)
+
+        this.shopText = this.add.text(260, 165, '', { fontSize: '19px', color: "#ffffff", lineSpacing: 12}).setScrollFactor(0).setDepth(4001)
+
+        this.shopPanel.setVisible(false)
+        this.shopText.setVisible(false)
+
+        this.shopKeys = this.input.keyboard.addKeys({
+            sell: Phaser.Input.Keyboard.KeyCodes.ONE,
+            buy: Phaser.Input.Keyboard.KeyCodes.TWO,
+            close: Phaser.Input.Keyboard.KeyCodes.ESC
+        }) // yes there are keyboard shortcuts 😒
+
+        this.shopKeys.sell.on('down', () => {
+            if (this.shopOpen) this.sellDragonFruit()
+        })
+
+        this.shopKeys.buy.on('down', () => {
+            if (this.shopOpen) this.buySeeds()
+        })
+
+        this.shopKeys.close.on('down', () => {
+            if (this.shopOpen) this.closeShop()
         })
 
         const directions = [
@@ -221,6 +261,10 @@ export default class GameScene extends Phaser.Scene {
     }
 
     update() {
+        if (this.shopOpen) {
+            this.player.body.setVelocity(0,0)
+            return
+        }
         const speed = 220
 
         let x = 0; let y = 0
@@ -249,11 +293,13 @@ export default class GameScene extends Phaser.Scene {
             return Phaser.Math.Distance.Between(this.player.x, this.player.y, plot.x, plot.y) < 75
         })
 
+        const nearbyVendor = Phaser.Math.Distance.Between(this.player.x, this.player.y,this.shopStall.x, this.shopStall.y) < 85 ? this.shopStall : null
+
         const nearbyObstacle = this.obstacles.getChildren().find(object => {
             return Phaser.Math.Distance.Between(this.player.x, this.player.y, object.x, object.y) < 75
         })
 
-        this.nearbyObject = nearbyPlot || nearbyObstacle
+        this.nearbyObject = nearbyPlot || nearbyVendor || nearbyObstacle
 
         if (this.nearbyObject) {
             const object = this.nearbyObject
@@ -267,7 +313,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     refreshInventory() {
-        this.inventoryText.setText(`Seeds: ${this.inventory.seeds}  ` + `Dragon Fruit: ${this.inventory.dragonFruit}`)
+        this.inventoryText.setText(`Seeds: ${this.inventory.seeds}  ` + `Dragon Fruit: ${this.inventory.dragonFruit}  ` + `Coins: ${this.inventory.coins}`)
     }
 
     renderPlot(plot) {
@@ -331,6 +377,11 @@ export default class GameScene extends Phaser.Scene {
         
         if (!object) return
 
+        if (object.getData("type") === 'merchant') {
+            this.openShop()
+            return
+        }
+
         if (object.getData('type') !== 'farmPlot') {
             this.showMessage(`You discovered a ${object.getData('name')}!`)
             return
@@ -373,6 +424,61 @@ export default class GameScene extends Phaser.Scene {
 
         this.renderPlot(object)
         this.refreshInventory()
+    }
+
+    openShop() {
+        this.shopOpen = true
+        this.shopStatus = 'Choose something!!'
+        this.player.body.setVelocity(0,0)
+        this.shopPanel.setVisible(true)
+        this.shopText.setVisible(true)
+        this.refreshShop()
+    }
+
+    closeShop() {
+        this.shopOpen = false
+        this.shopPanel.setVisible(false)
+        this.shopText.setVisible(false)
+    }
+
+    refreshShop() {
+        this.shopText.setText(`Baidi Shop  |  Coins: ${this.inventory.coins}  |  [1] Sell all Dragon Fruit: 12 coins each  |  [2] Buy 1 Dragon Fruit Seed: 5 coins  |  ${this.shopStatus}  Press ESC to leave the shop.`)
+    }
+
+    sellDragonFruit() {
+        const amount = this.inventory.dragonFruit
+
+        if (amount <= 0) {
+            this.shopStatus = 'You have no fruit to sell!'
+            this.refreshShop()
+            return
+        }
+
+        const earnings = amount * 12
+
+        this.inventory.dragonFruit = 0
+        this.inventory.coins += earnings
+
+        this.shopStatus = `Sold ${amount} fruit for ${earnings} coins!`
+
+        this.refreshInventory()
+        this.refreshShop()
+    }
+
+    buySeeds() {
+        if (this.inventory.coins < 5) {
+            this.shopStatus = "Not enough coins!!"
+            this.refreshShop()
+            return
+        }
+
+        this.inventory.coins -= 5
+        this.inventory.seeds++
+
+        this.shopStatus = 'Purchased 1 seed!'
+
+        this.refreshInventory()
+        this.refreshShop()
     }
 
     createDragonTexture() {
