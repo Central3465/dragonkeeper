@@ -105,6 +105,8 @@ export default class GameScene extends Phaser.Scene {
         this.shopOpen = false
         this.shopStatus = "Welcome to my shop!"
 
+        this.shopPanel = this.add.rectangle(480,270,540,330,0x18251c,0.97).setStrokeStyle(4,0xc9a65a)
+
         this.shopPanel.setScrollFactor(0).setDepth(4000)
 
         this.shopText = this.add.text(260, 165, '', { fontSize: '19px', color: "#ffffff", lineSpacing: 12}).setScrollFactor(0).setDepth(4001)
