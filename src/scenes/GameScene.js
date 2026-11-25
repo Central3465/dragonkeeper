@@ -374,4 +374,32 @@ export default class GameScene extends Phaser.Scene {
         this.renderPlot(object)
         this.refreshInventory()
     }
+
+    createDragonTexture() {
+        const graphics = this.make.graphics()
+
+        graphics.fillStyle(0x397c49)
+        graphics.fillTriangle(5,17,16,8,17,25)
+        graphics.fillTriangle(35,17,24,8,23,25)
+        graphics.fillStyle(0x55a85b)
+        graphics.fillEllipse(20, 24, 27, 23)
+        graphics.fillStyle(0x70c96c)
+        graphics.fillCircle(20,10,10)
+        graphics.fillStyle(0xe8dba3)
+        graphics.fillTriangle(12,6,14,0,17,7)
+        graphics.fillTriangle(23,7,27,0,28,7)
+        graphics.fillStyle(0xffffff)
+        graphics.fillCircle(16,10,2)
+        graphics.fillCircle(24,10,2)
+        graphics.fillStyle(0x17251c)
+        graphics.fillCircle(16,10,1)
+        graphics.fillCircle(24,10,1)
+        graphics.lineStyle(4,0x55a85b)
+        graphics.beginPath()
+        graphics.moveTo(30,29)
+        graphics.lineTo(39, 35)
+        graphics.strokePath()
+        graphics.generateTexture('babyDragon', 44, 40)
+        graphics.destroy()
+    }
 }      
