@@ -124,9 +124,7 @@ export default class GameScene extends Phaser.Scene {
         this.add.text(20, 490, 'WASD / Arrow Keys to move | E to interact', { fontSize: "14px", color: "#ffffff"}).setScrollFactor(0).setDepth(2000)
 
         this.interactKey.on('down', () => {
-            if (this.nearbyObject) {
-                this.showMessage(`You have discovered a ${this.nearbyObject.getData('name')}`)
-            }
+            this.interactWithNearbyObject()
         })
     }
 
@@ -247,16 +245,22 @@ export default class GameScene extends Phaser.Scene {
             this.player.setFrame(this.player.anims.currentAnim ? this.player.anims.currentAnim.frames[0].frame.name : 0)
         }
 
-        this.nearbyObject = null
+        const nearbyPlot = this.farmPlots.find(plot => {
+            return Phaser.Math.Distance.Between(this.player.x, this.player.y, plot.x, plot.y) < 75
+        })
 
-        const nearby = this.obstacles.getChildren().find(object => {
+        const nearbyObstacle = this.obstacles.getChildren().find(object => {
             return Phaser.Math.Distance.Between(this.player.x, this.player.y, object.x, object.y) < 75
         })
 
-        if (nearby) {
-            this.nearbyObject = nearby
+        this.nearbyObject = nearbyPlot || nearbyObstacle
 
-            this.prompt.setText(`Press E to interact with ${nearby.getData('name')}`).setVisible(true)
+        if (this.nearbyObject) {
+            const object = this.nearbyObject
+            
+            const action = object.getData('type') === 'farmPlot' ? this.getPlotAction(object) : object.getData('name')
+
+            this.prompt.setText(`Press E: ${action}`).setVisible(true)
         } else {
             this.prompt.setVisible(false)
         }
@@ -279,8 +283,95 @@ export default class GameScene extends Phaser.Scene {
 
             plant.setDepth(plot.y + 1)
 
-            plant.fillStyle(0x397a43)
-            plant.fillRect(plot.x, plot.y - 10, 7)
+            plant.fillStyle(0x347a43)
+            plant.fillRect(plot.x - 3, plot.y - 8, 6, 19)
+
+            if (state === 'planted') {
+                plant.fillStyle(0x75a94c)
+                plant.fillCircle(plot.x, plot.y - 10, 7)
+            }
+
+            if (state === "watered") {
+                plant.fillStyle(0x75a94c)
+                plant.fillCircle(plot.x, plot.y-13, 10)
+            }
+
+            if (state === "grown") {
+                plant.fillStyle(0x258044)
+                plant.fillCircle(plot.x, plot.y-12, 14)
+
+                plant.fillStyle(0xd94c91)
+                plant.fillCircle(plot.x + 5, plot.y - 14, 7)
+
+                plant.fillStyle(0xffffff)
+                plant.fillCircle(plot.x + 5, plot.y - 14, 2)
+            }
+
+            visuals.push(plant)
         }
+
+        plot.setData('visuals', visuals)
+    }
+
+    getPlotAction(plot) {
+        const state = plot.getData('state')
+
+        const actions = {
+            empty: "Plant Dragon Fruit", // i think the best fruit is durian but its for terra :D
+            planted: "Water Crop",
+            watered: "Growing...",
+            grown: "Harvest Dragon Fruit"
+        }
+
+        return actions[state]
+    }
+
+    interactWithNearbyObject() {
+        const object = this.nearbyObject
+        
+        if (!object) return
+
+        if (object.getData('type') !== 'farmPlot') {
+            this.showMessage(`You discovered a ${object.getData('name')}!`)
+            return
+        }
+
+        const state = object.getData('state')
+
+        if (state === 'empty') {
+            if (this.inventory.seeds <= 0) {
+                this.showMessage('You have no seeds left!')
+                return
+            }
+
+            this.inventory.seeds--
+            object.setData('state', 'planted')
+
+            this.showMessage('Dragon fruit seed planted!')
+        } else if (state === 'planted') {
+            object.setData('state', 'watered')
+
+            this.showMessage('Your crop has been watered!')
+
+            this.time.delayedCall(20000, () => {
+                if (object.active && object.getData('state') === 'watered') {
+                    object.setData('state', 'grown')
+                    this.renderPlot(object)
+                    this.showMessage('Your dragon fruit is ready to harvest!')
+                }
+            })
+        } else if (state === "watered") {
+            this.showMessage('Your crop is still growing, come back later!')
+        } else if (state === 'grown') {
+            this.inventory.dragonFruit++
+            this.inventory.seeds++
+
+            object.setData('state', "empty")
+
+            this.showMessage(`Dragon fruit harvested! +1 fruit, +1 seed`)
+        }
+
+        this.renderPlot(object)
+        this.refreshInventory()
     }
 }      
