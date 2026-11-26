@@ -377,12 +377,12 @@ export default class GameScene extends Phaser.Scene {
             return Phaser.Math.Distance.Between(this.player.x, this.player.y, object.x, object.y) < 75
         })
 
-        this.nearbyObject = nearbyPlot || nearbyVendor || nearbyObstacle || nearbyEgg
+        this.nearbyObject = nearbyPlot || nearbyVendor || nearbyEgg
 
         if (this.nearbyObject) {
             const object = this.nearbyObject
             
-            const action = object.getData('type') === 'farmPlot' ? this.getPlotAction(object) : object.getData('type') === 'dragonEgg' ? 'Hatch egg' : object.getData('name')
+            const action = object.getData('type') === 'farmPlot' ? this.getPlotAction(object) : object.getData('type') === 'dragonEgg' ? 'Hatch egg' : object.getData('name') 
 
             this.prompt.setText(`Press E: ${action}`).setVisible(true)
         } else {
@@ -477,7 +477,6 @@ export default class GameScene extends Phaser.Scene {
         }
 
         if (object.getData('type') !== 'farmPlot') {
-            this.showMessage(`You discovered a ${object.getData('name')}!`)
             return
         }
 
@@ -518,25 +517,6 @@ export default class GameScene extends Phaser.Scene {
 
         this.renderPlot(object)
         this.refreshInventory()
-    }
-
-    openShop() {
-        this.shopOpen = true
-        this.shopStatus = 'Choose something!!'
-        this.player.body.setVelocity(0,0)
-        this.shopPanel.setVisible(true)
-        this.shopText.setVisible(true)
-        this.refreshShop()
-    }
-
-    closeShop() {
-        this.shopOpen = false
-        this.shopPanel.setVisible(false)
-        this.shopText.setVisible(false)
-    }
-
-    refreshShop() {
-        this.shopText.setText(`Baidi Shop  |  Coins: ${this.inventory.coins}  |  [1] Sell all Dragon Fruit: 12 coins each  |  [2] Buy 1 Dragon Fruit Seed: 5 coins  |  ${this.shopStatus}  Press ESC to leave the shop.`)
     }
 
     sellDragonFruit() {
