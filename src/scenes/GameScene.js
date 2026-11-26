@@ -15,6 +15,8 @@ export default class GameScene extends Phaser.Scene {
 
         this.createPlayerTexture()
         this.createWorldTextures()
+        this.createDragonTexture()
+        this.createDragonEggTexture()
 
         const ground = this.add.graphics()
         ground.fillStyle(0x385c40)
@@ -62,6 +64,15 @@ export default class GameScene extends Phaser.Scene {
         this.player.body.setOffset(7, 20)
 
         this.physics.add.collider(this.player, this.obstacles)
+
+        this.dragonEgg = this.add.image(1145,1000,"dragonEgg")
+
+        this.dragonEgg.setDepth(1001)
+        this.dragonEgg.setData("type", `dragonEgg`)
+        this.dragonEgg.setData('name', "Ancient Dragon Egg")
+
+        this.dragon = null
+        this.dragonHatched = false
 
         this.inventory = {
             seeds: 5,
@@ -300,20 +311,33 @@ export default class GameScene extends Phaser.Scene {
 
         const nearbyVendor = Phaser.Math.Distance.Between(this.player.x, this.player.y,this.shopStall.x, this.shopStall.y) < 85 ? this.shopStall : null
 
+        const nearbyEgg = this.dragonEgg?.active && Phaser.Math.Distance.Between(this.player.x, this.player.y, this.dragonEgg.x, this.dragonEgg.y) < 85 ? this.dragonEgg : null
+
         const nearbyObstacle = this.obstacles.getChildren().find(object => {
             return Phaser.Math.Distance.Between(this.player.x, this.player.y, object.x, object.y) < 75
         })
 
-        this.nearbyObject = nearbyPlot || nearbyVendor || nearbyObstacle
+        this.nearbyObject = nearbyPlot || nearbyVendor || nearbyObstacle || nearbyEgg
 
         if (this.nearbyObject) {
             const object = this.nearbyObject
             
-            const action = object.getData('type') === 'farmPlot' ? this.getPlotAction(object) : object.getData('name')
+            const action = Object.getData('type') === 'farmPlot' ? this.getPlotAction(object) : object.getData('type') === 'dragonEgg' ? 'Hatch egg' : object.getData('name')
 
             this.prompt.setText(`Press E: ${action}`).setVisible(true)
         } else {
             this.prompt.setVisible(false)
+        }
+
+        if (this.dragon && this.dragon.active) {
+            const targetX = this.player.x - 32
+            const targetY = this.player.y + 25
+
+            this.dragon.x = Phaser.Math.Linear(this.dragon.x, targetX, 0.08)
+
+            this.dragon.y = Phaser.Math.Linear(this.dragon.y, targetY, 0.08)
+
+            this.dragon.setDepth(this.dragon.y + 1)
         }
     }
 
@@ -384,6 +408,11 @@ export default class GameScene extends Phaser.Scene {
 
         if (object.getData("type") === 'merchant') {
             this.openShop()
+            return
+        }
+
+        if (object.getData('type') === 'dragonEgg') {
+            this.hatchDragon(object)
             return
         }
 
@@ -512,5 +541,43 @@ export default class GameScene extends Phaser.Scene {
         graphics.strokePath()
         graphics.generateTexture('babyDragon', 44, 40)
         graphics.destroy()
+    }
+
+    createDragonEggTexture() {
+        const graphics = this.make.graphics()
+
+        graphics.fillStyle(0x263b29, 0.5)
+        graphics.fillEllipse(20,43,30,8)
+
+        graphics.fillStyle(0x75c9b5)
+        graphics.fillEllipse(20,23,25,37)
+
+        graphics.fillStyle(0xe8dba3)
+        graphics.fillTriangle(20,5,14,18,23,16)
+        graphics.fillTriangle(20,25,27,31,17,37)
+
+        graphics.fillStyle(0xc5f5df)
+        graphics.fillEllipse(14,18,5,12)
+
+        graphics.generateTexture('dragonEgg', 40, 48)
+        graphics.destroy()
+    }
+
+    hatchDragon(egg) {
+        if (this.dragonHatched) return
+
+        const x = egg.x
+        const y = egg.y
+
+        egg.destroy()
+
+        this.dragonHatched = true
+
+        this.dragon = this.add.image(x+35,y,'babyDragon')
+
+        this.dragon.setScale(1.2)
+        this.dragon.setDepth(y+1)
+
+        this.showMessage('Your dragon has been hatched!')
     }
 }      
