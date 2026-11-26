@@ -322,7 +322,7 @@ export default class GameScene extends Phaser.Scene {
         if (this.nearbyObject) {
             const object = this.nearbyObject
             
-            const action = Object.getData('type') === 'farmPlot' ? this.getPlotAction(object) : object.getData('type') === 'dragonEgg' ? 'Hatch egg' : object.getData('name')
+            const action = object.getData('type') === 'farmPlot' ? this.getPlotAction(object) : object.getData('type') === 'dragonEgg' ? 'Hatch egg' : object.getData('name')
 
             this.prompt.setText(`Press E: ${action}`).setVisible(true)
         } else {
