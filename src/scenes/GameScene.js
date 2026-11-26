@@ -117,16 +117,8 @@ export default class GameScene extends Phaser.Scene {
 
         this.shopOpen = false
         this.shopStatus = "Welcome to my shop!"
-
-        this.shopPanel = this.add.rectangle(cum.width / 2, cum.height / 2, 540, 330, 0x18251c, 0.97)
-        this.shopPanel.setStrokeStyle(4, 0xc9a65a)
-
-        this.shopPanel.setScrollFactor(0).setDepth(4000)
-
-        this.shopText = this.add.text(260, 165, '', { fontSize: '19px', color: "#ffffff", lineSpacing: 12}).setScrollFactor(0).setDepth(4001)
-
-        this.shopPanel.setVisible(false)
-        this.shopText.setVisible(false)
+        this.shopElements = []
+        this.buildShopPanel(cum)
 
         this.shopKeys = this.input.keyboard.addKeys({
             sell: Phaser.Input.Keyboard.KeyCodes.ONE,
@@ -182,6 +174,74 @@ export default class GameScene extends Phaser.Scene {
         this.interactKey.on('down', () => {
             this.interactWithNearbyObject()
         })
+    }
+
+    buildShopPanel(camera) {
+        const panelWidth = 560
+        const panelHeight = 360
+        const left = camera.width / 2 - panelWidth / 2
+        const top = camera.height / 2 - panelHeight / 2
+
+        this.shopBackground = this.add.rectangle(camera.width / 2, camera.height / 2, panelWidth, panelHeight, 0x18251c, 0.97)
+        this.shopBackground.setStrokeStyle(4, 0xc9a65a)
+        this.shopBackground.setScrollFactor(0).setDepth(4000)
+
+        this.shopTitle = this.add.text(left + 30, top+24, 'Baidi Shop', { fontSize: "26px", color: '#e8dba3', fontStyle: "bold"}).setScrollFactor(0).setDepth(4001)
+
+        this.shopCoins = this.add.text(left + panelWidth - 30, top+28, '', { fontSize: `20px`, color: "#c9a65a"}).setOrigin(1,0).setScrollFactor(0).setDepth(4001)
+
+        this.shopRows = [
+            this.createShopRow(left+30, top+100, '[1]', "Sell Dragon Fruit", "12 coins each"),
+            this.createShopRow(left+30, top+180, '[2]', "Buy Dragon Fruit seeds", "5 coins each")
+        ]
+
+        this.shopStatusText = this.add.text(left+30, top+panelHeight - 70, "", {fontSize: "17px", color: "#a8e6a3", wordWrap: { width: panelWidth - 60}}).setScrollFactor(0).setDepth(4001)
+
+        this.shopHintText = this.add.text(left+30, top+panelHeight - 34, 'Press ESC to leave', { fontSize: "15px", color: "#8a9c8f"}).setScrollFactor(0).setDepth(4001)
+
+        this.shopElements = [this.shopBackground, this.shopTitle, this.shopCoins, ...this.shopRows.flatMap(row => [row.key, row.name, row.price]), this.shopStatusText, this.shopHintText]
+
+        this.setShopVisible(false)
+    }
+
+    createShopRow(x,y,keyLabel,name,price) {
+        const key = this.add.text(x,y,keyLabel, { fontSize: "20px", color: "#18251c", backgroundColor: "#c9a65a", padding: {x:8, y:4}, fontStyle: "bold"}).setScrollFactor(0).setDepth(4001)
+
+        const nameText = this.add.text(x+70,y+3,name,{fontSize: "20px", color: "#ffffff"}).setScrollFactor(0).setDepth(4001)
+
+        const priceText = this.add.text(x+440, y+3, price, { fontSize: "18px", color: "#e8dba3"}).setOrigin(1,0).setScrollFactor(0).setDepth(4001)
+
+        return { key, name: nameText, price: priceText}
+    }
+
+    setShopVisible(visible) {
+        this.shopElements.forEach(element => element.setVisible(visible))
+    }
+
+    openShop() {
+        this.shopOpen = true
+        this.shopStatus = "Choose something!!"
+        this.player.body.setVelocity(0,0)
+        this.setShopVisible(true)
+        this.refreshShop()
+    }
+
+    closeShop() {
+        this.shopOpen = false
+        this.setShopVisible(false)
+    }
+
+    refreshShop() {
+        const fruitCount = this.inventory.dragonFruit
+        const canSell = fruitCount > 0
+        const canBuy = this.inventory.coins >= 5
+
+        this.shopCoins.setText(`Coins: ${this.inventory.coins}`)
+
+        this.shopRows[0].name.setText(canSell ? `Sell Dragon Fruit x${fruitCount}` : "You have nothing to sell :(")
+        this.shopRows[0].price.setColor(canSell ? "#e8dba3" : "#6b7c72")
+        this.shopRows[1].price.setColor(canBuy ? "#e8dba3" : "#6b7c72")
+        this.shopStatusText.setText(this.shopStatus)
     }
 
     createPlayerTexture() {
