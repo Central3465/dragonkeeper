@@ -167,6 +167,9 @@ export default class GameScene extends Phaser.Scene {
 
         this.nearbyObject = null
 
+        this.dragonStatusText = this.add.text(20,90,"", { fontSize: "15px", color: "#ffffff", backgroundcolor: "#263b29", padding: 10, lineSpacing: 5}).setScrollFactor(0).setDepth(2000)
+        this.dragonStatusText.setVisible(false)
+
         this.add.text(20,20,'Dragon Keeper', { fontSize: '24px', color: "#ffffff", fontStyle: "bold"}).setScrollFactor(0).setDepth(2000)
 
         this.add.text(20, 490, 'WASD / Arrow Keys to move | E to interact', { fontSize: "14px", color: "#ffffff"}).setScrollFactor(0).setDepth(2000)
@@ -373,16 +376,19 @@ export default class GameScene extends Phaser.Scene {
 
         const nearbyEgg = this.dragonEgg?.active && Phaser.Math.Distance.Between(this.player.x, this.player.y, this.dragonEgg.x, this.dragonEgg.y) < 85 ? this.dragonEgg : null
 
+        const nearbyDragon = this.dragon?.active && Phaser.Math.Distance.Between(this.player.x, this.player.y, this.dragon.x, this.dragon.y) < 90 ? this.dragon : null
+
         const nearbyObstacle = this.obstacles.getChildren().find(object => {
             return Phaser.Math.Distance.Between(this.player.x, this.player.y, object.x, object.y) < 75
         })
 
-        this.nearbyObject = nearbyPlot || nearbyVendor || nearbyEgg
+        this.nearbyObject = nearbyPlot || nearbyVendor || nearbyEgg || nearbyDragon
 
         if (this.nearbyObject) {
             const object = this.nearbyObject
             
-            const action = object.getData('type') === 'farmPlot' ? this.getPlotAction(object) : object.getData('type') === 'dragonEgg' ? 'Hatch egg' : object.getData('name') 
+            const action = object.getData("type") === "farmPlot" ? this.getPlotAction(object) : object.getData("type") === "dragonEgg"
+                ? "Hatch egg" : object.getData("type") === "dragon" ? "Feed dragon" : object.getData("name")
 
             this.prompt.setText(`Press E: ${action}`).setVisible(true)
         } else {
@@ -473,6 +479,11 @@ export default class GameScene extends Phaser.Scene {
 
         if (object.getData('type') === 'dragonEgg') {
             this.hatchDragon(object)
+            return
+        }
+
+        if (object.getData("type") === "dragon") {
+            this.feedDragon()
             return
         }
 
@@ -608,16 +619,82 @@ export default class GameScene extends Phaser.Scene {
 
         const x = egg.x
         const y = egg.y
-
+        
         egg.destroy()
 
         this.dragonHatched = true
 
-        this.dragon = this.add.image(x+35,y,'babyDragon')
+        this.dragon = this.add.image(x+35, y, 'babyDragon')
 
         this.dragon.setScale(1.2)
         this.dragon.setDepth(y+1)
+        this.dragon.setData('type', 'dragon')
 
-        this.showMessage('Your dragon has been hatched!')
+        this.dragonStats = {
+            hinger: 100,
+            happiness: 100,
+            growth: 0,
+            stage: "Baby"
+        }
+
+        this.dragonStatusText.setVisible(true)
+
+        this.refreshDragonStatus()
+
+        this.dragonNeedsTimer = this.time.addEvent({ delay: 2000, loop: true, callback: () => {
+            this.dragonStats.hinger = Math.max(0, this.dragonStats.hinger - 5)
+            this.dragonStats.happiness = Math.max(0,this.dragonStats.happiness - (this.dragonStats.hinger <= 25 ? 5 : 2))
+            this.refreshDragonStatus()
+        }})
+
+        this.showMessage("Your dragon has hatched! Take good care of it otherwise it will die (i hope it does)")
+    }
+
+    feedDragon() {
+        if (!this.dragon || !this.dragonStats) return
+
+        if (this.inventory.dragonFruit <= 0) {
+            this.showMessage("You need more dragon fruit to feed your dragon, it can't eat nothing!")
+            return
+        }
+
+        if (this.dragonStats.hinger >= 100) { // yes i am aware it says hinger
+            this.showMessage("You want your dragon to become fat? NO, disgusting behaviour!")
+            return
+        }
+
+        this.inventory.dragonFruit--
+
+        this.dragonStats.hinger = Math.min(100, this.dragonStats.hinger + 35)
+
+        this.dragonStats.happiness = Math.min(100, this.dragonStats.happiness + 15)
+
+        this.dragonStats.growth++
+
+        this.refreshInventory()
+        this.refreshDragonStatus()
+
+        this.showMessage("Your dragon enjoyed the dragon fruit, don't overfeed it!")
+
+        if (this.dragonStats.growth >= 3 && this.dragonStats.stage === "Baby") {
+            this.dragonStats.stage = 'Young'
+
+            this.dragon.setScale(1.7)
+
+            this.showMessage("Wow! Your dragon has grown into a big boy!")
+
+            this.refreshDragonStatus()
+        }
+    }
+
+    refreshDragonStatus() {
+        if (!this.dragonStats) return
+
+        const stats = this.dragonStats
+
+        this.dragonStatusText.setText(
+            `${stats.stage} dragon\n` + `Hunger (hinger): ${stats.hinger}/100\n` +
+            `Happiness: ${stats.happiness}/100\n` + `Growth: ${stats.growth}/3`
+        )
     }
 }      
